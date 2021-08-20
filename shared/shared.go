@@ -4,10 +4,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/spacemeshos/merkle-tree"
-	"github.com/spacemeshos/sha256-simd"
 	"os"
 	"time"
+
+	"github.com/spacemeshos/merkle-tree"
+	"github.com/spacemeshos/sha256-simd"
 )
 
 const (
@@ -63,9 +64,9 @@ func MakeLabelFunc() func(hash func(data []byte) []byte, labelID uint64, leftSib
 }
 
 type MerkleProof struct {
-	Root         []byte
-	ProvenLeaves [][]byte
-	ProofNodes   [][]byte
+	Root         []byte   `ssz-max:"512"`
+	ProvenLeaves [][]byte `ssz-size:"?,?" ssz-max:"1024000,1024000"`
+	ProofNodes   [][]byte `ssz-size:"?,?" ssz-max:"1024000,1024000"`
 }
 
 // Retry provides generic capability for retryable function execution.

@@ -1,22 +1,21 @@
 package service
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/nullstyle/go-xdr/xdr3"
-	"github.com/spacemeshos/poet/shared"
 	"io/ioutil"
 	"os"
+
+	ssz "github.com/ferranbt/fastssz"
+	"github.com/spacemeshos/poet/shared"
 )
 
-func persist(filename string, v interface{}) error {
-	var w bytes.Buffer
-	_, err := xdr.Marshal(&w, v)
+func persist(filename string, v ssz.Marshaler) error {
+	buf, err := v.MarshalSSZ()
 	if err != nil {
-		return fmt.Errorf("serialization failure: %v", err)
+		return err
 	}
 
-	err = ioutil.WriteFile(filename, w.Bytes(), shared.OwnerReadWrite)
+	err = ioutil.WriteFile(filename, buf, shared.OwnerReadWrite)
 	if err != nil {
 		return fmt.Errorf("write to disk failure: %v", err)
 	}
@@ -25,7 +24,7 @@ func persist(filename string, v interface{}) error {
 
 }
 
-func load(filename string, v interface{}) error {
+func load(filename string, v ssz.Unmarshaler) error {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -34,11 +33,5 @@ func load(filename string, v interface{}) error {
 
 		return fmt.Errorf("failed to read file: %v", err)
 	}
-
-	_, err = xdr.Unmarshal(bytes.NewReader(data), v)
-	if err != nil {
-		return fmt.Errorf("failed to deserialize: %v", err)
-	}
-
-	return nil
+	return v.UnmarshalSSZ(data)
 }

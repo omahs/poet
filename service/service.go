@@ -1,15 +1,8 @@
 package service
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"github.com/nullstyle/go-xdr/xdr3"
-	"github.com/spacemeshos/poet/broadcaster"
-	"github.com/spacemeshos/poet/shared"
-	"github.com/spacemeshos/poet/signal"
-	"github.com/spacemeshos/smutil/log"
-	"golang.org/x/crypto/ed25519"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,6 +10,12 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/spacemeshos/poet/broadcaster"
+	"github.com/spacemeshos/poet/shared"
+	"github.com/spacemeshos/poet/signal"
+	"github.com/spacemeshos/smutil/log"
+	"golang.org/x/crypto/ed25519"
 )
 
 type Config struct {
@@ -38,8 +37,8 @@ type Config struct {
 const serviceStateFileBaseName = "state.bin"
 
 type serviceState struct {
-	NextRoundID int
-	PrivKey     []byte
+	NextRoundID uint64
+	PrivKey     []byte `ssz-max:"256"`
 }
 
 // Service orchestrates rounds functionality; each responsible for accepting challenges,
@@ -60,7 +59,7 @@ type Service struct {
 	executingRounds map[string]*round
 
 	prevRound   *round
-	nextRoundID int
+	nextRoundID uint64
 
 	PubKey      ed25519.PublicKey
 	privKey     ed25519.PrivateKey
@@ -97,7 +96,7 @@ type GossipPoetProof struct {
 
 	// Members is the ordered list of miners challenges which are included
 	// in the proof (by using the list hash digest as the proof generation input (the statement)).
-	Members [][]byte
+	Members [][]byte `ssz-size:"?,?" ssz-max:"4096,4096"`
 
 	// NumLeaves is the width of the proof-generation tree.
 	NumLeaves uint64
@@ -105,9 +104,9 @@ type GossipPoetProof struct {
 
 type PoetProofMessage struct {
 	GossipPoetProof
-	ServicePubKey []byte
-	RoundID       string
-	Signature     []byte
+	ServicePubKey []byte `ssz-max:"4096"`
+	RoundID       string `ssz-max:"4096"`
+	Signature     []byte `ssz-max:"4096"`
 }
 
 func NewService(sig *signal.Signal, cfg *Config, datadir string) (*Service, error) {
@@ -424,7 +423,7 @@ func (s *Service) openRoundClosurePerDuration(d time.Duration) <-chan struct{} {
 	// If the open round was recovered, include the time period from when it was originally opened.
 	var offset time.Duration
 	if s.openRound.stateCache != nil {
-		offset = time.Since(s.openRound.stateCache.Opened)
+		offset = time.Since(time.Unix(0, int64(s.openRound.stateCache.Opened)))
 	}
 
 	c := make(chan struct{})
@@ -471,11 +470,5 @@ func serializeProofMsg(servicePubKey []byte, roundID string, execution *executio
 		RoundID:       roundID,
 		Signature:     nil,
 	}
-
-	var dataBuf bytes.Buffer
-	if _, err := xdr.Marshal(&dataBuf, proofMessage); err != nil {
-		return nil, fmt.Errorf("failed to marshal proof message for round %v: %v", roundID, err)
-	}
-
-	return dataBuf.Bytes(), nil
+	return proofMessage.MarshalSSZ()
 }

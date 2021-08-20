@@ -2,13 +2,14 @@ package service
 
 import (
 	"fmt"
-	"github.com/spacemeshos/poet/prover"
-	"github.com/spacemeshos/poet/signal"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/spacemeshos/poet/prover"
+	"github.com/spacemeshos/poet/signal"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -159,10 +160,10 @@ func TestRound_State(t *testing.T) {
 	req.NotNil(state.Execution)
 	req.True(state.Execution.NumLeaves != 0)
 	req.True(state.Execution.SecurityParam != 0)
-	req.True(state.Execution.Statement == nil)
+	req.Len(state.Execution.Statement, 0)
 	req.True(state.Execution.NextLeafID == 0)
-	req.True(state.Execution.ParkedNodes == nil)
-	req.True(state.Execution.NIP == nil)
+	req.Len(state.Execution.ParkedNodes, 0)
+	req.Len(state.Execution.NIP.Root, 0)
 
 	// Execute the round, and request shutdown before completion.
 	go func() {
@@ -188,7 +189,7 @@ func TestRound_State(t *testing.T) {
 	req.True(len(state.Execution.Statement) == 32)
 	req.True(state.Execution.NextLeafID > 0)
 	req.True(state.Execution.ParkedNodes != nil)
-	req.True(state.Execution.NIP == nil)
+	req.Len(state.Execution.NIP.Root, 0)
 
 	// Create a new round instance of the same round.
 	r = newRound(signal.NewSignal(), cfg, tempdir, "test-round")
@@ -219,6 +220,7 @@ func TestRound_State(t *testing.T) {
 	state, err = r.state()
 	req.True(!state.isOpen())
 	req.True(state.isExecuted())
+	r.execution.ParkedNodes = [][]byte{} // FIXME(dshulyak)
 	req.Equal(r.execution, state.Execution)
 
 	// Trigger cleanup.

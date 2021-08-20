@@ -3,11 +3,11 @@ module github.com/spacemeshos/poet
 require (
 	github.com/btcsuite/btcd v0.0.0-20190629003639-c26ffa870fd8 // indirect
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
+	github.com/ferranbt/fastssz v0.0.0-20210817104241-ab271261c6d9
 	github.com/golang/protobuf v1.4.2
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/kr/pretty v0.1.0 // indirect
-	github.com/nullstyle/go-xdr v0.0.0-20180726165426-f4c839f75077
 	github.com/spacemeshos/api/release/go v0.0.0-20201103002846-7d0dfed55cc1
 	github.com/spacemeshos/merkle-tree v0.0.0-20191028110812-1908c3126c82
 	github.com/spacemeshos/sha256-simd v0.0.0-20190111104731-8575aafc88c9
@@ -21,4 +21,6 @@ require (
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
 
-go 1.13
+replace github.com/ferranbt/fastssz => /home/dd/fastssz
+
+go 1.15

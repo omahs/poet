@@ -24,3 +24,8 @@ dockerpush: dockerbuild-go
 	docker tag $(DOCKER_IMAGE_REPO):$(BRANCH) spacemeshos/$(DOCKER_IMAGE_REPO):$(BRANCH)
 	docker push spacemeshos/$(DOCKER_IMAGE_REPO):$(BRANCH)
 .PHONY: dockerpush
+
+sszgen:
+	sszgen --path ./shared/ --output ./shared/types_ssz.go --objs MerkleProof
+	sszgen --path ./service/ --output ./service/types_ssz.go --objs PoetProofMessage,roundState,serviceState --include ./shared/
+.PHONY: sszgen

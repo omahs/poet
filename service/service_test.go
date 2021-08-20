@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"github.com/nullstyle/go-xdr/xdr3"
-	"github.com/spacemeshos/merkle-tree"
-	"github.com/spacemeshos/poet/prover"
-	"github.com/spacemeshos/poet/signal"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/spacemeshos/merkle-tree"
+	"github.com/spacemeshos/poet/prover"
+	"github.com/spacemeshos/poet/signal"
+	"github.com/stretchr/testify/require"
 )
 
 type MockBroadcaster struct {
@@ -176,8 +176,7 @@ func TestService_Recovery(t *testing.T) {
 		case <-time.After(10 * time.Second):
 			req.Fail("proof message wasn't sent")
 		case msg := <-broadcaster.receivedMessages:
-			_, err := xdr.Unmarshal(bytes.NewReader(msg), &proofMsg)
-			req.NoError(err)
+			require.NoError(t, proofMsg.UnmarshalSSZ(msg))
 		}
 
 		req.Equal(rounds[i].ID, proofMsg.RoundID)
@@ -283,8 +282,7 @@ func TestNewService(t *testing.T) {
 	select {
 	case msg := <-proofBroadcaster.receivedMessages:
 		poetProof := PoetProofMessage{}
-		_, err := xdr.Unmarshal(bytes.NewReader(msg), &poetProof)
-		req.NoError(err)
+		req.NoError(poetProof.UnmarshalSSZ(msg))
 	case <-time.After(100 * time.Millisecond):
 		req.Fail("proof message wasn't sent")
 	}

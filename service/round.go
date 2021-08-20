@@ -3,6 +3,11 @@ package service
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+
 	"github.com/spacemeshos/merkle-tree"
 	"github.com/spacemeshos/merkle-tree/cache"
 	"github.com/spacemeshos/poet/hash"
@@ -11,18 +16,14 @@ import (
 	"github.com/spacemeshos/poet/signal"
 	"github.com/spacemeshos/smutil/log"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"os"
-	"path/filepath"
-	"sync"
-	"time"
 )
 
 type executionState struct {
 	NumLeaves     uint64
 	SecurityParam uint8
-	Members       [][]byte
-	Statement     []byte
-	ParkedNodes   [][]byte
+	Members       [][]byte `ssz-size:"?,?" ssz-max:"1024000,1024000"`
+	Statement     []byte   `ssz-max:"1024000"`
+	ParkedNodes   [][]byte `ssz-size:"?,?" ssz-max:"1024000,1024000"`
 	NextLeafID    uint64
 	NIP           *shared.MerkleProof
 }
@@ -30,17 +31,17 @@ type executionState struct {
 const roundStateFileBaseName = "state.bin"
 
 type roundState struct {
-	Opened           time.Time
-	ExecutionStarted time.Time
+	Opened           uint64
+	ExecutionStarted uint64
 	Execution        *executionState
 }
 
 func (r *roundState) isOpen() bool {
-	return !r.Opened.IsZero() && r.ExecutionStarted.IsZero()
+	return r.Opened != 0 && r.ExecutionStarted == 0
 }
 
 func (r *roundState) isExecuted() bool {
-	return r.Execution.NIP != nil
+	return r.Execution.NIP != nil && len(r.Execution.NIP.Root) != 0
 }
 
 type round struct {
@@ -105,7 +106,7 @@ func newRound(sig *signal.Signal, cfg *Config, datadir string, id string) *round
 
 func (r *round) open() error {
 	if r.stateCache != nil {
-		r.opened = r.stateCache.Opened
+		r.opened = time.Unix(0, int64(r.stateCache.Opened))
 	} else {
 		r.opened = time.Now()
 		if err := r.saveState(); err != nil {
@@ -217,7 +218,7 @@ func (r *round) persistExecution(tree *merkle.Tree, treeCache *cache.Writer, nex
 }
 
 func (r *round) recoverExecution(state *executionState) error {
-	r.executionStarted = r.stateCache.ExecutionStarted
+	r.executionStarted = time.Unix(0, int64(r.stateCache.ExecutionStarted))
 	close(r.executionStartedChan)
 
 	if state.Members != nil && state.Statement != nil {
@@ -227,7 +228,7 @@ func (r *round) recoverExecution(state *executionState) error {
 		var err error
 		r.execution.Members, r.execution.Statement, err = r.calcMembersAndStatement()
 		if err != nil {
-			return err
+			return fmt.Errorf("calc members %w", err)
 		}
 		if err := r.saveState(); err != nil {
 			return err
@@ -247,10 +248,10 @@ func (r *round) recoverExecution(state *executionState) error {
 		r.persistExecution,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("can't generate proof %w", err)
 	}
 	if err := r.saveState(); err != nil {
-		return err
+		return fmt.Errorf("can't save state %w", err)
 	}
 
 	close(r.executionEndedChan)
@@ -310,11 +311,18 @@ func (r *round) state() (*roundState, error) {
 	return s, nil
 }
 
+func definedUnixNano(tm time.Time) uint64 {
+	if tm.IsZero() {
+		return 0
+	}
+	return uint64(tm.UnixNano())
+}
+
 func (r *round) saveState() error {
 	filename := filepath.Join(r.datadir, roundStateFileBaseName)
 	v := &roundState{
-		Opened:           r.opened,
-		ExecutionStarted: r.executionStarted,
+		Opened:           definedUnixNano(r.opened),
+		ExecutionStarted: definedUnixNano(r.executionStarted),
 		Execution:        r.execution,
 	}
 
