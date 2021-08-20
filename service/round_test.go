@@ -86,7 +86,7 @@ func TestRound_Recovery(t *testing.T) {
 	}()
 
 	start = time.Now()
-	req.EqualError(r2recovery1.recoverExecution(state.Execution), prover.ErrShutdownRequested.Error())
+	req.ErrorIs(r2recovery1.recoverExecution(state.Execution), prover.ErrShutdownRequested)
 	r2exec2 := time.Since(start)
 
 	// Recover r2 execution again, and let it complete.
