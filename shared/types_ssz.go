@@ -41,7 +41,7 @@ func (m *MerkleProof) MarshalSSZTo(buf []byte) (dst []byte, err error) {
 	dst = append(dst, m.Root...)
 
 	// Field (1) 'ProvenLeaves'
-	if len(m.ProvenLeaves) > 4096 {
+	if len(m.ProvenLeaves) > 1024000 {
 		err = ssz.ErrListTooBig
 		return
 	}
@@ -53,7 +53,7 @@ func (m *MerkleProof) MarshalSSZTo(buf []byte) (dst []byte, err error) {
 		}
 	}
 	for ii := 0; ii < len(m.ProvenLeaves); ii++ {
-		if len(m.ProvenLeaves[ii]) > 4096 {
+		if len(m.ProvenLeaves[ii]) > 1024000 {
 			err = ssz.ErrBytesLength
 			return
 		}
@@ -61,7 +61,7 @@ func (m *MerkleProof) MarshalSSZTo(buf []byte) (dst []byte, err error) {
 	}
 
 	// Field (2) 'ProofNodes'
-	if len(m.ProofNodes) > 4096 {
+	if len(m.ProofNodes) > 1024000 {
 		err = ssz.ErrListTooBig
 		return
 	}
@@ -73,7 +73,7 @@ func (m *MerkleProof) MarshalSSZTo(buf []byte) (dst []byte, err error) {
 		}
 	}
 	for ii := 0; ii < len(m.ProofNodes); ii++ {
-		if len(m.ProofNodes[ii]) > 4096 {
+		if len(m.ProofNodes[ii]) > 1024000 {
 			err = ssz.ErrBytesLength
 			return
 		}
@@ -124,13 +124,13 @@ func (m *MerkleProof) UnmarshalSSZ(buf []byte) error {
 	// Field (1) 'ProvenLeaves'
 	{
 		buf = tail[o1:o2]
-		num, err := ssz.DecodeDynamicLength(buf, 4096)
+		num, err := ssz.DecodeDynamicLength(buf, 1024000)
 		if err != nil {
 			return err
 		}
 		m.ProvenLeaves = make([][]byte, num)
 		err = ssz.UnmarshalDynamic(buf, num, func(indx int, buf []byte) (err error) {
-			if len(buf) > 4096 {
+			if len(buf) > 1024000 {
 				return ssz.ErrBytesLength
 			}
 			if cap(m.ProvenLeaves[indx]) == 0 {
@@ -147,13 +147,13 @@ func (m *MerkleProof) UnmarshalSSZ(buf []byte) error {
 	// Field (2) 'ProofNodes'
 	{
 		buf = tail[o2:]
-		num, err := ssz.DecodeDynamicLength(buf, 4096)
+		num, err := ssz.DecodeDynamicLength(buf, 1024000)
 		if err != nil {
 			return err
 		}
 		m.ProofNodes = make([][]byte, num)
 		err = ssz.UnmarshalDynamic(buf, num, func(indx int, buf []byte) (err error) {
-			if len(buf) > 4096 {
+			if len(buf) > 1024000 {
 				return ssz.ErrBytesLength
 			}
 			if cap(m.ProofNodes[indx]) == 0 {
