@@ -43,6 +43,8 @@ type challenge struct {
 //  - Submit challenges to open round (2).
 //  - Verify that new service instance broadcast 3 distinct rounds proofs, by the expected order.
 func TestService_Recovery(t *testing.T) {
+	// NOTE(dshulyak) this test is extremely unreliable
+
 	req := require.New(t)
 	sig := signal.NewSignal()
 	broadcaster := &MockBroadcaster{receivedMessages: make(chan []byte)}
@@ -113,7 +115,7 @@ func TestService_Recovery(t *testing.T) {
 	submitChallenges(1, 1)
 
 	// Wait a bit for round 0 execution to proceed.
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond)
 
 	// Request shutdown.
 	sig.RequestShutdown()
